@@ -4,6 +4,7 @@ extern crate blsttc;
 extern crate hex;
 use hex::FromHex;
 use std::collections::HashMap;
+extern crate base64;
 
 use blsttc::{PublicKey, Signature};
 
@@ -42,14 +43,20 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 
             let url_vars: HashMap<_, _> = req.url().expect("url parsing failed").query_pairs().into_owned().collect();
             let jwt = url_vars.get("jwt").expect("getting jwt failed");
+            let jwt_parts = jwt.split(".").collect::<Vec<&str>>();
+            let sig_from_jwt_base64 = jwt_parts[2];
+            let mut sig_from_jwt: [u8; 96] = [0; 96];
+            base64::decode_config_slice(sig_from_jwt_base64, base64::URL_SAFE, &mut sig_from_jwt);
 
-            let sig_str = "a8a098bd87503c6d0c8fb1bad7c4c1a9ff4555c3c05b5fdd0c20144cec4a1eddac49079785ddff2120179bf9081a1e49039cefadf9725bed946ec40270e1a82a7a1f64eb1de136873c4b7d93559e8c52282c2bf15de990de3a69c74ef4f6c7f6";
-            let sig_bytes: [u8; 96] = <[u8; 96]>::from_hex(sig_str).expect("Decoding failed");
-            let sig = Signature::from_bytes(sig_bytes).expect("parsing sig failed");
-            let msg = "eyJhbGciOiJCTFMxMi0zODEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJMSVQiLCJzdWIiOiIweGRiZDM2MGYzMDA5N2ZiNmQ5MzhkY2M4YjdiNjI4NTRiMzYxNjBiNDUiLCJjaGFpbiI6InBvbHlnb24iLCJpYXQiOjE2MzkzMzA5MDMsImV4cCI6MTYzOTM3NDEwMywiYmFzZVVybCI6Im15LWR5bmFtaWMtY29udGVudC1zZXJ2ZXIuY29tIiwicGF0aCI6Ii9jajVuN3FraHdjODZqYmZ1YzltdWd4Iiwib3JnSWQiOiIiLCJyb2xlIjoiIiwiZXh0cmFEYXRhIjoiIn0";
+            let msg = format!("{:}.{:}", jwt_parts[0], jwt_parts[1]);
+
+            // let sig_str = "a8a098bd87503c6d0c8fb1bad7c4c1a9ff4555c3c05b5fdd0c20144cec4a1eddac49079785ddff2120179bf9081a1e49039cefadf9725bed946ec40270e1a82a7a1f64eb1de136873c4b7d93559e8c52282c2bf15de990de3a69c74ef4f6c7f6";
+            // let sig_bytes: [u8; 96] = <[u8; 96]>::from_hex(sig_str).expect("Decoding failed");
+            let sig = Signature::from_bytes(sig_from_jwt).expect("parsing sig failed");
+            // let msg = "eyJhbGciOiJCTFMxMi0zODEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJMSVQiLCJzdWIiOiIweGRiZDM2MGYzMDA5N2ZiNmQ5MzhkY2M4YjdiNjI4NTRiMzYxNjBiNDUiLCJjaGFpbiI6InBvbHlnb24iLCJpYXQiOjE2MzkzMzA5MDMsImV4cCI6MTYzOTM3NDEwMywiYmFzZVVybCI6Im15LWR5bmFtaWMtY29udGVudC1zZXJ2ZXIuY29tIiwicGF0aCI6Ii9jajVuN3FraHdjODZqYmZ1YzltdWd4Iiwib3JnSWQiOiIiLCJyb2xlIjoiIiwiZXh0cmFEYXRhIjoiIn0";
 
             let verified = pubkey.verify(&sig, msg);
-            let resp = format!("Hello from Workers! {:?} and path {:?}", verified, jwt);
+            let resp = format!("Hello from Workers! {:?} and jwt {:?} and sig {:?}", verified, jwt, sig_from_jwt);
             // println!("{:?}",resp);
             Response::ok(resp)
         })
