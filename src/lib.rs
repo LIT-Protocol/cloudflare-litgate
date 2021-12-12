@@ -1,5 +1,11 @@
 use serde_json::json;
 use worker::*;
+extern crate blsttc;
+extern crate hex;
+use hex::FromHex;
+use std::collections::HashMap;
+
+use blsttc::{PublicKey, Signature};
 
 mod utils;
 
@@ -29,7 +35,24 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
     // functionality and a `RouteContext` which you can use to  and get route parameters and
     // Environment bindings like KV Stores, Durable Objects, Secrets, and Variables.
     router
-        .get("/", |_, _| Response::ok("Hello from Workers!"))
+        .get("/", |req, ctx| {
+            let network_pubkey_string = "9971e835a1fe1a4d78e381eebbe0ddc84fde5119169db816900de796d10187f3c53d65c1202ac083d099a517f34a9b62";
+            let pubkey_bytes: [u8; 48] = <[u8; 48]>::from_hex(network_pubkey_string).expect("Decoding failed");
+            let pubkey = PublicKey::from_bytes(pubkey_bytes).expect("parsing pubkey failed");
+
+            let url_vars: HashMap<_, _> = req.url().expect("url parsing failed").query_pairs().into_owned().collect();
+            let jwt = url_vars.get("jwt").expect("getting jwt failed");
+
+            let sig_str = "a8a098bd87503c6d0c8fb1bad7c4c1a9ff4555c3c05b5fdd0c20144cec4a1eddac49079785ddff2120179bf9081a1e49039cefadf9725bed946ec40270e1a82a7a1f64eb1de136873c4b7d93559e8c52282c2bf15de990de3a69c74ef4f6c7f6";
+            let sig_bytes: [u8; 96] = <[u8; 96]>::from_hex(sig_str).expect("Decoding failed");
+            let sig = Signature::from_bytes(sig_bytes).expect("parsing sig failed");
+            let msg = "eyJhbGciOiJCTFMxMi0zODEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJMSVQiLCJzdWIiOiIweGRiZDM2MGYzMDA5N2ZiNmQ5MzhkY2M4YjdiNjI4NTRiMzYxNjBiNDUiLCJjaGFpbiI6InBvbHlnb24iLCJpYXQiOjE2MzkzMzA5MDMsImV4cCI6MTYzOTM3NDEwMywiYmFzZVVybCI6Im15LWR5bmFtaWMtY29udGVudC1zZXJ2ZXIuY29tIiwicGF0aCI6Ii9jajVuN3FraHdjODZqYmZ1YzltdWd4Iiwib3JnSWQiOiIiLCJyb2xlIjoiIiwiZXh0cmFEYXRhIjoiIn0";
+
+            let verified = pubkey.verify(&sig, msg);
+            let resp = format!("Hello from Workers! {:?} and path {:?}", verified, jwt);
+            // println!("{:?}",resp);
+            Response::ok(resp)
+        })
         .post_async("/form/:field", |mut req, ctx| async move {
             if let Some(name) = ctx.param("field") {
                 let form = req.form_data().await?;
