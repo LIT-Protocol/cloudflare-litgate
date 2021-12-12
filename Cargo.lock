@@ -36,7 +36,9 @@ checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
 name = "blst"
-version = "0.3.4"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f073f59a150a1dca74aab43d794ae5a7578d52bb1e73121e559f3ee3e6a837e"
 dependencies = [
  "cc",
  "glob",
@@ -47,6 +49,7 @@ dependencies = [
 [[package]]
 name = "blsttc"
 version = "2.0.2"
+source = "git+https://github.com/LIT-Protocol/blsttc#b290cb228e9146a199f9611857ea784b61d0506f"
 dependencies = [
  "blst",
  "byteorder",
@@ -628,9 +631,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.67"
+version = "1.0.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7f9e390c27c3c0ce8bc5d725f6e4d30a29d26659494aa4b17535f7522c5c950"
+checksum = "d0ffa0837f2dfa6fb90868c2b5468cad482e175f7dad97e7421951e663f2b527"
 dependencies = [
  "itoa",
  "ryu",
